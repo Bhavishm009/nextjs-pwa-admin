@@ -20,6 +20,7 @@ import {
 import { Loader2, Bell, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getAppIconPath } from "@/utils/getAppIconPath";
+import { getValidAccessToken } from '@/lib/auth';
 
 
 interface NotificationMessage {
@@ -56,58 +57,49 @@ export default function NotificationsPage() {
 
   const [selectedMessages, setSelectedMessages] = useState<NotificationMessage[]>([]);
 
-  // const fetchNotifications = useCallback(async (skipCount: number) => {
-  //   setLoading(true);
-  //   try {
-  //     const res = await fetch(`http://localhost:3030/notifications?limit=${limit}&skip=${skipCount}`);
-  //     const data = await res.json();
-
-  //     if (skipCount === 0) {
-  //       setLogs(data.logs);
-  //       setTotalCount(data.total)
-  //     } else {
-  //       setLogs(prev => [...prev, ...data.logs]);
-  //     }
-
-  //     setHasMore(data.logs.length === limit);
-  //   } catch (err) {
-  //     console.error('Fetch error:', err);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // }, [limit]);
 
   const fetchNotifications = useCallback(async (skipCount: number) => {
-    setLoading(true);
+    setLoading(true)
+  
     try {
+      const token = await getValidAccessToken()
+      if (!token) {
+        throw new Error("Unauthorized – No valid access token")
+      }
+  
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/notifications?limit=${limit}&skip=${skipCount}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // ✅ Add token here!
           },
-          mode: 'cors' // Optional, good for clarity
+          mode: "cors",
         }
-      );
+      )
   
-      const data = await res.json();
+      const data = await res.json()
   
-      if (skipCount === 0) {
-        setLogs(data.logs);
-        setTotalCount(data.total); // ✅ total from API
-      } else {
-        setLogs(prev => [...prev, ...data.logs]);
+      if (!res.ok) {
+        throw new Error(data.message || "Fetch failed")
       }
   
-      setHasMore(data.logs.length === limit);
-    } catch (err) {
-      console.error('Fetch error:', err);
+      if (skipCount === 0) {
+        setLogs(data.logs)
+        setTotalCount(data.total || 0)
+      } else {
+        setLogs((prev) => [...prev, ...data.logs])
+      }
+  
+      setHasMore(data.logs.length === limit)
+    } catch (err: any) {
+      console.error("Fetch error:", err.message || err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [limit]);
+  }, [limit])
   
 
   useEffect(() => {
@@ -168,7 +160,7 @@ export default function NotificationsPage() {
         </CardHeader>
         <CardContent className='lg:p-6 p-[10px]'>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {logs.map((log, i) => {
+            {logs?.map((log, i) => {
               const showRecentStyle = isRecent(log.time);
               console.log(log)
               return (
@@ -234,7 +226,7 @@ export default function NotificationsPage() {
               ))}
           </div>
 
-          {loading && logs.length > 0 && (
+          {loading && logs?.length > 0 && (
             <div className="flex justify-center py-8">
               <div className="flex items-center space-x-2 text-gray-600">
                 <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
@@ -243,7 +235,7 @@ export default function NotificationsPage() {
             </div>
           )}
 
-          {!hasMore && logs.length > 0 && (
+          {!hasMore && logs?.length > 0 && (
             <div className="text-center py-8 text-gray-500">
               You've reached the end of the notification list!
             </div>

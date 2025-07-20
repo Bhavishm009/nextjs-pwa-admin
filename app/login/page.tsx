@@ -1,14 +1,12 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Shield } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -22,19 +20,31 @@ export default function LoginPage() {
     setIsLoading(true)
     setError("")
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      })
 
-    // Dummy credentials
-    if (username === "admin" && password === "password123") {
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("user", JSON.stringify({ username: "admin", role: "admin" }))
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed")
+      }
+
+      // ✅ Store the tokens (or store only refresh securely via HTTP-only cookie)
+      localStorage.setItem("accessToken", data.accessToken)
+      localStorage.setItem("refreshToken", data.refreshToken)
+      localStorage.setItem("user", JSON.stringify(data.user))
+
       router.push("/dashboard")
-    } else {
-      setError("Invalid credentials. Use username: admin, password: password123")
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || "Something went wrong")
+    } finally {
+      setIsLoading(false)
     }
-
-    setIsLoading(false)
   }
 
   return (
@@ -54,7 +64,6 @@ export default function LoginPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -65,20 +74,12 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
             {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</div>}
-            <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
-              <strong>Demo Credentials:</strong>
-              <br />
-              Username: admin
-              <br />
-              Password: password123
-            </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>

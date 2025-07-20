@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, PhoneCall, Clock, ArrowDownLeft, ArrowUpRight, PhoneOff, Loader } from 'lucide-react'
+import { getValidAccessToken } from '@/lib/auth'
 
 interface CallLog {
   _id: string
@@ -23,6 +24,12 @@ export default function DashboardPage() {
   const fetchCallLogs = useCallback(async (skipCount: number) => {
     setLoading(true);
     try {
+      const token = await getValidAccessToken()
+
+      if (!token) {
+        throw new Error("Unauthorized: No valid access token found.")
+      }
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/calllogs?limit=${limit}&skip=${skipCount}`,
         {
@@ -30,30 +37,31 @@ export default function DashboardPage() {
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`, // ✅ Send access token here
           },
-          mode: 'cors',// 👍 required if you're calling another origin
+          mode: 'cors',
         }
-      );
+      )
 
       if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
+        throw new Error(`Server error: ${res.status}`)
       }
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (skipCount === 0) {
-        setLogs(data.logs);
+        setLogs(data.logs)
       } else {
-        setLogs(prev => [...prev, ...data.logs]);
+        setLogs(prev => [...prev, ...data.logs])
       }
 
-      setHasMore(data.logs.length === limit);
+      setHasMore(data.logs.length === limit)
     } catch (error) {
-      console.error('Failed to fetch call logs:', error);
+      console.error('Failed to fetch call logs:', error)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [limit]);
+  }, [limit])
 
 
   useEffect(() => {
