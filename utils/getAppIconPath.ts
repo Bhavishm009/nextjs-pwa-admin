@@ -2,7 +2,10 @@
 
 export const getAppIconPath = (appId: string = ''): string => {
   const id = appId.toLowerCase();
+  console.log(id)
   const iconMap: Record<string, string> = {
+    'com.google.android.apps.messaging' :'googlemessages.svg',
+    'com.android.vending':'googleplay',
     'com.whatsapp': 'whatsapp',
     'com.instagram.android': 'instagram',
     'com.facebook.katana': 'facebook',

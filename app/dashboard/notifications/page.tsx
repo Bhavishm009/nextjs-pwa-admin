@@ -162,7 +162,6 @@ export default function NotificationsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {logs?.map((log, i) => {
               const showRecentStyle = isRecent(log.time);
-              console.log(log)
               return (
                 <Dialog key={`${log._id}-${i}`}>
                   <DialogTrigger asChild>
