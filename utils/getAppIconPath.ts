@@ -4,7 +4,7 @@ export const getAppIconPath = (appId: string = ''): string => {
   const id = appId.toLowerCase();
   console.log(id)
   const iconMap: Record<string, string> = {
-    'com.google.android.apps.messaging' :'googlemessages.svg',
+    'com.google.android.apps.messaging' :'googlemessages',
     'com.android.vending':'googleplay',
     'com.whatsapp': 'whatsapp',
     'com.instagram.android': 'instagram',
@@ -38,6 +38,8 @@ export const getAppIconPath = (appId: string = ''): string => {
     'in.swiggy.android': 'swiggy',
     'com.application.zomato': 'zomato',
     'com.weather.Weather': 'weather',
+    'com.flipkart.shopsy':'flipkart',
+    'com.google.android.dialer':'viber'
   };
 
   // 🔍 1. Match exact key first
@@ -55,5 +57,5 @@ export const getAppIconPath = (appId: string = ''): string => {
   }
 
   // 🔁 fallback icon
-  return '/app-icons/default.png';
+  return 'https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/tacobell.svg';
 };
