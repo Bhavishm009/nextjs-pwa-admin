@@ -1,10 +1,22 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, PhoneCall, Clock, ArrowDownLeft, ArrowUpRight, PhoneOff, Loader } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  Clock,
+  Loader,
+  Loader2,
+  Mic,
+  PhoneCall,
+  PhoneOff,
+} from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth'
 import { API_URL } from '@/lib/config'
+import { formatTimestamp12Hour } from '@/lib/datetime'
 
 interface CallLog {
   _id: string
@@ -15,34 +27,92 @@ interface CallLog {
   type: string
 }
 
-export default function DashboardPage() {
+interface RecordingItem {
+  _id: string
+  itemId: string
+  originalName?: string
+  mimetype?: string
+  size?: number
+  metadata?: { phoneNumber?: string }
+  createdAt: string
+}
+
+const normalizePhone = (value?: string) => (value || '').replace(/\D/g, '')
+
+const phonesMatch = (left?: string, right?: string) => {
+  const a = normalizePhone(left)
+  const b = normalizePhone(right)
+
+  if (!a || !b) return false
+  if (a === b) return true
+
+  const shorter = a.length <= b.length ? a : b
+  const longer = a.length > b.length ? a : b
+
+  return shorter.length >= 7 && longer.endsWith(shorter)
+}
+
+const parseRecordingTimestamp = (recording: RecordingItem) => {
+  const idx = recording.itemId?.lastIndexOf('_') ?? -1
+  const ts = idx >= 0 ? Number(recording.itemId.slice(idx + 1)) : NaN
+
+  if (Number.isFinite(ts)) return ts
+
+  return new Date(recording.createdAt).getTime()
+}
+
+const getTypeIcon = (type: string) => {
+  switch (type.toUpperCase()) {
+    case 'INCOMING':
+      return <ArrowDownLeft className="h-6 w-6 text-green-600" />
+    case 'OUTGOING':
+      return <ArrowUpRight className="h-6 w-6 text-blue-600" />
+    case 'MISSED':
+      return <PhoneOff className="h-6 w-6 text-red-600" />
+    default:
+      return <PhoneCall className="h-6 w-6 text-gray-500" />
+  }
+}
+
+const formatDuration = (seconds: number) => {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+
+  if (mins > 0) {
+    return `${mins}m ${secs}s`
+  }
+
+  return `${secs}s`
+}
+
+export default function CallLogsPage() {
   const [logs, setLogs] = useState<CallLog[]>([])
+  const [recordings, setRecordings] = useState<RecordingItem[]>([])
+  const [audioMap, setAudioMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const [recordingsLoading, setRecordingsLoading] = useState(false)
+  const [audioLoadingId, setAudioLoadingId] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [skip, setSkip] = useState(0)
   const limit = 12
 
   const fetchCallLogs = useCallback(async (skipCount: number) => {
-    setLoading(true);
+    setLoading(true)
     try {
       const token = await getValidAccessToken()
-
       if (!token) {
-        throw new Error("Unauthorized: No valid access token found.")
+        throw new Error('Unauthorized: No valid access token found.')
       }
 
-      const res = await fetch(
-        `${API_URL}/calllogs?limit=${limit}&skip=${skipCount}`,
-        {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`, // ✅ Send access token here
-          },
-          mode: 'cors',
-        }
-      )
+      const res = await fetch(`${API_URL}/calllogs?limit=${limit}&skip=${skipCount}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        mode: 'cors',
+      })
 
       if (!res.ok) {
         throw new Error(`Server error: ${res.status}`)
@@ -64,10 +134,37 @@ export default function DashboardPage() {
     }
   }, [limit])
 
+  const fetchRecordings = useCallback(async () => {
+    setRecordingsLoading(true)
+    try {
+      const token = await getValidAccessToken()
+      if (!token) {
+        throw new Error('Unauthorized: No valid access token found.')
+      }
+
+      const res = await fetch(`${API_URL}/recordings?limit=200&skip=0`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Recording fetch failed')
+      }
+
+      setRecordings(data.records || [])
+    } catch (error) {
+      console.error('Failed to fetch recordings:', error)
+    } finally {
+      setRecordingsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchCallLogs(0)
-  }, [fetchCallLogs])
+    fetchRecordings()
+  }, [fetchCallLogs, fetchRecordings])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -84,61 +181,152 @@ export default function DashboardPage() {
 
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [skip, loading, hasMore, fetchCallLogs]);
+  }, [skip, loading, hasMore, fetchCallLogs])
 
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    if (mins > 0) {
-      return `${mins}m ${secs}s`;
+  useEffect(() => {
+    return () => {
+      Object.values(audioMap).forEach(url => URL.revokeObjectURL(url))
     }
-    return `${secs}s`;
-  };
+  }, [])
 
-  const getTypeIcon = (type: string) => {
-    switch (type.toUpperCase()) {
-      case "INCOMING":
-        return <ArrowDownLeft className="h-6 w-6 text-green-600" />;
-      case "OUTGOING":
-        return <ArrowUpRight className="h-6 w-6 text-blue-600" />;
-      case "MISSED":
-        return <PhoneOff className="h-6 w-6 text-red-600" />;
-      default:
-        return <PhoneCall className="h-6 w-6 text-gray-500" />;
+  const loadAudio = async (id: string) => {
+    try {
+      setAudioLoadingId(id)
+
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Unauthorized')
+
+      const existingUrl = audioMap[id]
+      if (existingUrl) {
+        URL.revokeObjectURL(existingUrl)
+      }
+
+      const res = await fetch(`${API_URL}/recordings/file/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Audio fetch failed')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      setAudioMap(prev => ({ ...prev, [id]: url }))
+    } catch (error) {
+      console.error('Audio load error', error)
+    } finally {
+      setAudioLoadingId(null)
     }
-  };
+  }
 
+  const getMatchedRecordings = (log: CallLog) => {
+    const callTs = Number(log.timestamp || 0)
 
+    return recordings
+      .filter(recording => {
+        const recordingTs = parseRecordingTimestamp(recording)
+
+        return (
+          phonesMatch(recording.metadata?.phoneNumber, log.phoneNumber) &&
+          Math.abs(recordingTs - callTs) <= 4 * 60 * 60 * 1000
+        )
+      })
+      .sort((a, b) => {
+        const aDelta = Math.abs(parseRecordingTimestamp(a) - callTs)
+        const bDelta = Math.abs(parseRecordingTimestamp(b) - callTs)
+        return aDelta - bDelta
+      })
+  }
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-2">
-        {logs.map((log) => (
-          <Card key={log._id}>
-            <CardContent className="p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">{log.name || 'Unknown'}</p>
-                  <p className="text-lg font-semibold">{log.phoneNumber}</p>
+      <Card className="border-none shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Call Records</CardTitle>
+          <p className="text-sm text-gray-600">
+            Call history with matched recordings and all timestamps shown in 12-hour format.
+          </p>
+        </CardHeader>
+      </Card>
+
+      <div className="grid grid-cols-1 gap-3">
+        {logs.map(log => {
+          const matchedRecordings = getMatchedRecordings(log)
+
+          return (
+            <Card key={log._id} className="overflow-hidden border-gray-200 shadow-sm">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm text-gray-500">{log.name || 'Unknown contact'}</p>
+                      <p className="text-xl font-semibold tracking-tight text-gray-900">{log.phoneNumber}</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-sm text-gray-600">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1">
+                        <PhoneCall className="h-4 w-4" />
+                        {formatDuration(Number(log.duration || 0))}
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1">
+                        <Clock className="h-4 w-4" />
+                        {formatTimestamp12Hour(Number(log.timestamp))}
+                      </span>
+                    </div>
+                  </div>
+
+                  <Badge variant="secondary" className="flex w-fit items-center gap-2 px-3 py-1 text-sm">
+                    {getTypeIcon(log.type)}
+                    {log.type}
+                  </Badge>
                 </div>
-                <div className="bg-blue-100 text-blue-700 font-medium px-2 py-1 rounded text-xs flex justify-center items-center">
-                  <p>{getTypeIcon(log.type)}</p>
-                  <p>{log.type}</p>
+
+                <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Mic className="h-4 w-4 text-blue-600" />
+                      <p className="text-sm font-medium text-gray-900">Matched call recordings</p>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {recordingsLoading ? 'Checking recordings...' : `${matchedRecordings.length} found`}
+                    </span>
+                  </div>
+
+                  {matchedRecordings.length === 0 ? (
+                    <p className="text-sm text-gray-500">No recording available for this call.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {matchedRecordings.map(recording => (
+                        <div key={recording._id} className="rounded-xl border border-gray-200 bg-white p-3">
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-gray-900">
+                                {recording.originalName || recording.itemId}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Recorded at {formatTimestamp12Hour(parseRecordingTimestamp(recording))}
+                              </p>
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => loadAudio(recording._id)}
+                              disabled={audioLoadingId === recording._id}
+                            >
+                              {audioLoadingId === recording._id ? 'Loading...' : audioMap[recording._id] ? 'Reload audio' : 'Load audio'}
+                            </Button>
+                          </div>
+
+                          {audioMap[recording._id] && (
+                            <audio controls src={audioMap[recording._id]} className="mt-3 w-full" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span className="flex items-center gap-1">
-                  <PhoneCall className="h-4 w-4" /> {formatDuration(Number(log.duration))}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {new Date(Number(log.timestamp)).toLocaleString()}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          )
+        })}
       </div>
 
       {loading && (
@@ -148,12 +336,18 @@ export default function DashboardPage() {
             <p className="text-lg font-semibold">Loading, please wait...</p>
           </div>
         </div>
+      )}
 
+      {recordingsLoading && !loading && logs.length > 0 && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+          Matching recordings with calls...
+        </div>
       )}
 
       {!hasMore && logs.length > 0 && (
         <div className="text-center text-gray-500 py-4">
-          You've reached the end of the call log list!
+          You&apos;ve reached the end of the call log list.
         </div>
       )}
     </div>

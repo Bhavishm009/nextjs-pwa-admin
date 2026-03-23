@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { getAppIconPath } from "@/utils/getAppIconPath";
 import { getValidAccessToken } from '@/lib/auth';
 import { API_URL } from '@/lib/config';
+import { formatTimestamp12Hour } from '@/lib/datetime';
 
 
 interface NotificationMessage {
@@ -163,6 +164,7 @@ export default function NotificationsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {logs?.map((log, i) => {
               const showRecentStyle = isRecent(log.time);
+              const groupedMessages = log.groupedMessages ?? [];
               return (
                 <Dialog key={`${log._id}-${i}`}>
                   <DialogTrigger asChild>
@@ -184,27 +186,27 @@ export default function NotificationsPage() {
                         </div>
                         <p className="text-sm text-gray-600">{log.text || '(no text)'}</p>
 
-                        <p className="text-xs text-gray-400">{new Date(Number(log.time)).toLocaleString()}</p>
+                        <p className="text-xs text-gray-400">{formatTimestamp12Hour(Number(log.time))}</p>
 
-                        {log.groupedMessages && log.groupedMessages.length > 0 && (
+                        {groupedMessages.length > 0 && (
                           <div className="flex items-center gap-2 text-sm mt-2 text-blue-700">
                             <MessageSquare className="h-4 w-4" />
-                            {log.groupedMessages.length} Messages
+                            {groupedMessages.length} Messages
                           </div>
                         )}
                       </CardContent>
                     </Card>
                   </DialogTrigger>
 
-                  {log?.groupedMessages?.length > 0 && (
+                  {groupedMessages.length > 0 && (
                     <DialogContent className='w-[90%] mx-auto'>
                       <DialogHeader>
                         <DialogTitle>Grouped Messages</DialogTitle>
-                        <DialogDescription>{log?.groupedMessages?.length} messages grouped in this notification.</DialogDescription>
+                        <DialogDescription>{groupedMessages.length} messages grouped in this notification.</DialogDescription>
                       </DialogHeader>
 
                       <div className="mt-4 space-y-3 max-h-[400px] overflow-y-auto">
-                        {log?.groupedMessages.map((msg, index) => (
+                        {groupedMessages.map((msg, index) => (
                           <div
                             key={index}
                             className="p-3 bg-gray-100 border rounded space-y-1 text-sm"

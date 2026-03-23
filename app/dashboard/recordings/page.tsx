@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, Mic, Clock, PhoneCall } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth'
 import { API_URL } from '@/lib/config'
+import { formatTimestamp12Hour } from '@/lib/datetime'
 
 interface RecordingItem {
   _id: string
@@ -96,7 +97,7 @@ export default function RecordingsPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Clock className="h-4 w-4" />
-                  {new Date(item.createdAt).toLocaleString()}
+                  {formatTimestamp12Hour(item.createdAt)}
                 </div>
                 <Button
                   variant="outline"
