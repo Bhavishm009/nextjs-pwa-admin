@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { API_URL } from "@/lib/config"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

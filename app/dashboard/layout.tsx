@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getValidAccessToken } from "@/lib/auth"
+import { API_URL } from "@/lib/config"
 
 interface SidebarNavItemProps {
   href: string
@@ -55,7 +56,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return
       }
 
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+      fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => {
         if (!res.ok) throw new Error("Unauthorized")
@@ -79,7 +80,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const token = localStorage.getItem("accessToken")
 
       if (token) {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/logout`, {
+        await fetch(`${API_URL}/auth/logout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,

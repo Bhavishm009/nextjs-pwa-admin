@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card"
 import { Loader2, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { API_URL } from "@/lib/config"
 
 export default function SignupPage() {
     const [username, setUsername] = useState("")
@@ -29,7 +30,7 @@ export default function SignupPage() {
         setSuccess(false)
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, {
+            const res = await fetch(`${API_URL}/auth/signup`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

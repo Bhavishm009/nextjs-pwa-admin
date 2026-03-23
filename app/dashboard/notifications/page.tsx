@@ -21,6 +21,7 @@ import { Loader2, Bell, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getAppIconPath } from "@/utils/getAppIconPath";
 import { getValidAccessToken } from '@/lib/auth';
+import { API_URL } from '@/lib/config';
 
 
 interface NotificationMessage {
@@ -68,7 +69,7 @@ export default function NotificationsPage() {
       }
   
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/notifications?limit=${limit}&skip=${skipCount}`,
+        `${API_URL}/notifications?limit=${limit}&skip=${skipCount}`,
         {
           method: "GET",
           headers: {

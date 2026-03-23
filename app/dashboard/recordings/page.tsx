@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Mic, Clock, PhoneCall } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth'
+import { API_URL } from '@/lib/config'
 
 interface RecordingItem {
   _id: string
@@ -31,7 +32,7 @@ export default function RecordingsPage() {
       if (!token) throw new Error('Unauthorized')
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/recordings?limit=${limit}&skip=${skipCount}`,
+        `${API_URL}/recordings?limit=${limit}&skip=${skipCount}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -60,7 +61,7 @@ export default function RecordingsPage() {
     try {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Unauthorized')
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/recordings/file/${id}`, {
+      const res = await fetch(`${API_URL}/recordings/file/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error('Audio fetch failed')

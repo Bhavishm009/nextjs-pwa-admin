@@ -1,3 +1,5 @@
+import { API_URL } from "./config"
+
 export async function getValidAccessToken(): Promise<string | null> {
     const accessToken = localStorage.getItem("accessToken")
     const refreshToken = localStorage.getItem("refreshToken")
@@ -15,7 +17,7 @@ export async function getValidAccessToken(): Promise<string | null> {
     // 🌐 Access token expired -> refresh
     if (!refreshToken) return null
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),

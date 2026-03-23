@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, PhoneCall, Clock, ArrowDownLeft, ArrowUpRight, PhoneOff, Loader } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth'
+import { API_URL } from '@/lib/config'
 
 interface CallLog {
   _id: string
@@ -31,7 +32,7 @@ export default function DashboardPage() {
       }
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/calllogs?limit=${limit}&skip=${skipCount}`,
+        `${API_URL}/calllogs?limit=${limit}&skip=${skipCount}`,
         {
           method: 'GET',
           headers: {
