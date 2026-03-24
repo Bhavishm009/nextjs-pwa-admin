@@ -8,6 +8,7 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Clock,
+  Download,
   Loader,
   Loader2,
   Mic,
@@ -216,6 +217,30 @@ export default function CallLogsPage() {
     }
   }
 
+  const downloadAudio = async (id: string, fallbackName?: string) => {
+    try {
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Unauthorized')
+
+      const res = await fetch(`${API_URL}/recordings/download/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Download failed')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = fallbackName || `${id}.m4a`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Audio download error', error)
+    }
+  }
+
   const getMatchedRecordings = (log: CallLog) => {
     const callTs = Number(log.timestamp || 0)
 
@@ -305,14 +330,24 @@ export default function CallLogsPage() {
                               </p>
                             </div>
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => loadAudio(recording._id)}
-                              disabled={audioLoadingId === recording._id}
-                            >
-                              {audioLoadingId === recording._id ? 'Loading...' : audioMap[recording._id] ? 'Reload audio' : 'Load audio'}
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => loadAudio(recording._id)}
+                                disabled={audioLoadingId === recording._id}
+                              >
+                                {audioLoadingId === recording._id ? 'Loading...' : audioMap[recording._id] ? 'Reload audio' : 'Load audio'}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => downloadAudio(recording._id, recording.originalName)}
+                              >
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                              </Button>
+                            </div>
                           </div>
 
                           {audioMap[recording._id] && (

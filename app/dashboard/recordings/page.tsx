@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Loader2, Mic, Clock, PhoneCall } from 'lucide-react'
+import { Loader2, Mic, Clock, PhoneCall, Download } from 'lucide-react'
 import { getValidAccessToken } from '@/lib/auth'
 import { API_URL } from '@/lib/config'
 import { formatTimestamp12Hour } from '@/lib/datetime'
@@ -58,10 +58,20 @@ export default function RecordingsPage() {
     fetchRecordings(0)
   }, [fetchRecordings])
 
+  useEffect(() => {
+    return () => {
+      Object.values(audioMap).forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [audioMap])
+
   const loadAudio = async (id: string) => {
     try {
       const token = await getValidAccessToken()
       if (!token) throw new Error('Unauthorized')
+      const existingUrl = audioMap[id]
+      if (existingUrl) {
+        URL.revokeObjectURL(existingUrl)
+      }
       const res = await fetch(`${API_URL}/recordings/file/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -71,6 +81,30 @@ export default function RecordingsPage() {
       setAudioMap(prev => ({ ...prev, [id]: url }))
     } catch (e) {
       console.error('Audio load error', e)
+    }
+  }
+
+  const downloadAudio = async (id: string, fallbackName?: string) => {
+    try {
+      const token = await getValidAccessToken()
+      if (!token) throw new Error('Unauthorized')
+
+      const res = await fetch(`${API_URL}/recordings/download/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Download failed')
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = fallbackName || `${id}.m4a`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error('Audio download error', e)
     }
   }
 
@@ -99,13 +133,23 @@ export default function RecordingsPage() {
                   <Clock className="h-4 w-4" />
                   {formatTimestamp12Hour(item.createdAt)}
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => loadAudio(item._id)}
-                >
-                  {audioMap[item._id] ? 'Reload' : 'Load'} audio
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => loadAudio(item._id)}
+                  >
+                    {audioMap[item._id] ? 'Reload' : 'Load'} audio
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadAudio(item._id, item.originalName)}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                  </Button>
+                </div>
                 {audioMap[item._id] && (
                   <audio controls src={audioMap[item._id]} className="w-full mt-2" />
                 )}
