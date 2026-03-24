@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { LogOut, Menu, Settings, Bell, Heart, Home, BellRing, Phone, Search, Mic } from "lucide-react"
+import { LogOut, Menu, Settings, Bell, Heart, Home, BellRing, Phone, Search, Mic, ScrollText } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +112,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (pathname?.includes("/call-logs")) return "Call Logs"
     if (pathname?.includes("/notifications")) return "Notifications"
     if (pathname?.includes("/recordings")) return "Recordings"
+    if (pathname?.includes("/logs")) return "Logs"
     return "Dashboard"
   }
 
@@ -186,6 +187,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             label="Recordings"
             isActive={pathname === "/dashboard/recordings"}
             onClick={() => handleNavigation("/dashboard/recordings")}
+          />
+          <SidebarNavItem
+            href="/dashboard/logs"
+            icon={ScrollText}
+            label="Logs"
+            isActive={pathname === "/dashboard/logs"}
+            onClick={() => handleNavigation("/dashboard/logs")}
           />
         </nav>
 
