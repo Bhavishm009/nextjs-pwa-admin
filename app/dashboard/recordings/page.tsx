@@ -14,7 +14,7 @@ interface RecordingItem {
   originalName?: string
   mimetype?: string
   size?: number
-  metadata?: { phoneNumber?: string }
+  metadata?: { phoneNumber?: string; audioSource?: string; durationMs?: number }
   createdAt: string
 }
 
@@ -132,6 +132,12 @@ export default function RecordingsPage() {
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <Clock className="h-4 w-4" />
                   {formatTimestamp12Hour(item.createdAt)}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Source: {item.metadata?.audioSource || 'Unknown'}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Duration: {item.metadata?.durationMs ? `${Math.round(Number(item.metadata.durationMs) / 1000)}s` : 'Unknown'}
                 </div>
                 <div className="flex gap-2">
                   <Button

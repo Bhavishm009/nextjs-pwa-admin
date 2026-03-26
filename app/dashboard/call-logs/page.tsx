@@ -34,7 +34,7 @@ interface RecordingItem {
   originalName?: string
   mimetype?: string
   size?: number
-  metadata?: { phoneNumber?: string }
+  metadata?: { phoneNumber?: string; audioSource?: string; durationMs?: number }
   createdAt: string
 }
 
@@ -327,6 +327,9 @@ export default function CallLogsPage() {
                               </p>
                               <p className="text-xs text-gray-500">
                                 Recorded at {formatTimestamp12Hour(parseRecordingTimestamp(recording))}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Source: {recording.metadata?.audioSource || 'Unknown'}
                               </p>
                             </div>
 
