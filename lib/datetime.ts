@@ -1,4 +1,5 @@
 const twelveHourFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Kolkata',
   month: 'short',
   day: 'numeric',
   year: 'numeric',

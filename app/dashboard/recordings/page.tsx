@@ -18,6 +18,18 @@ interface RecordingItem {
   createdAt: string
 }
 
+const getRecordingMimeType = (fileName?: string, fallback?: string) => {
+  const normalized = (fileName || '').toLowerCase()
+
+  if (normalized.endsWith('.m4a') || normalized.endsWith('.mp4')) return 'audio/mp4'
+  if (normalized.endsWith('.aac')) return 'audio/aac'
+  if (normalized.endsWith('.mp3')) return 'audio/mpeg'
+  if (normalized.endsWith('.wav')) return 'audio/wav'
+  if (normalized.endsWith('.ogg')) return 'audio/ogg'
+
+  return fallback || 'audio/mp4'
+}
+
 export default function RecordingsPage() {
   const [items, setItems] = useState<RecordingItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -77,7 +89,13 @@ export default function RecordingsPage() {
       })
       if (!res.ok) throw new Error('Audio fetch failed')
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const typedBlob = new Blob([blob], {
+        type: getRecordingMimeType(
+          items.find(item => item._id === id)?.originalName,
+          res.headers.get('content-type') || blob.type || 'audio/mp4'
+        ),
+      })
+      const url = URL.createObjectURL(typedBlob)
       setAudioMap(prev => ({ ...prev, [id]: url }))
     } catch (e) {
       console.error('Audio load error', e)

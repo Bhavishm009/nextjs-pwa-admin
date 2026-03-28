@@ -38,6 +38,18 @@ interface RecordingItem {
   createdAt: string
 }
 
+const getRecordingMimeType = (fileName?: string, fallback?: string) => {
+  const normalized = (fileName || '').toLowerCase()
+
+  if (normalized.endsWith('.m4a') || normalized.endsWith('.mp4')) return 'audio/mp4'
+  if (normalized.endsWith('.aac')) return 'audio/aac'
+  if (normalized.endsWith('.mp3')) return 'audio/mpeg'
+  if (normalized.endsWith('.wav')) return 'audio/wav'
+  if (normalized.endsWith('.ogg')) return 'audio/ogg'
+
+  return fallback || 'audio/mp4'
+}
+
 const normalizePhone = (value?: string) => (value || '').replace(/\D/g, '')
 
 const phonesMatch = (left?: string, right?: string) => {
@@ -60,6 +72,29 @@ const parseRecordingTimestamp = (recording: RecordingItem) => {
   if (Number.isFinite(ts)) return ts
 
   return new Date(recording.createdAt).getTime()
+}
+
+const formatCallTypeLabel = (type?: string) => {
+  const normalized = String(type || '').trim().toUpperCase()
+
+  switch (normalized) {
+    case 'INCOMING':
+      return 'Incoming'
+    case 'OUTGOING':
+      return 'Outgoing'
+    case 'MISSED':
+      return 'Missed'
+    case 'REJECTED':
+      return 'Rejected'
+    case 'BLOCKED':
+      return 'Blocked'
+    case 'VOICEMAIL':
+      return 'Voicemail'
+    case 'ANSWERED_EXTERNALLY':
+      return 'Answered Externally'
+    default:
+      return normalized || 'Unknown'
+  }
 }
 
 const getTypeIcon = (type: string) => {
@@ -208,7 +243,14 @@ export default function CallLogsPage() {
       if (!res.ok) throw new Error('Audio fetch failed')
 
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const recording = recordings.find(item => item._id === id)
+      const typedBlob = new Blob([blob], {
+        type: getRecordingMimeType(
+          recording?.originalName,
+          res.headers.get('content-type') || blob.type || 'audio/mp4'
+        ),
+      })
+      const url = URL.createObjectURL(typedBlob)
       setAudioMap(prev => ({ ...prev, [id]: url }))
     } catch (error) {
       console.error('Audio load error', error)
@@ -266,7 +308,7 @@ export default function CallLogsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-xl">Call Records</CardTitle>
           <p className="text-sm text-gray-600">
-            Call history with matched recordings and all timestamps shown in 12-hour format.
+            Call history with matched recordings and all timestamps shown in India time in 12-hour format.
           </p>
         </CardHeader>
       </Card>
@@ -299,7 +341,7 @@ export default function CallLogsPage() {
 
                   <Badge variant="secondary" className="flex w-fit items-center gap-2 px-3 py-1 text-sm">
                     {getTypeIcon(log.type)}
-                    {log.type}
+                    {formatCallTypeLabel(log.type)}
                   </Badge>
                 </div>
 
